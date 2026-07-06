@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+/* Custom scrollbar for Kanban board */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Drag and drop visual feedback */
+.dnd-dragging {
+  opacity: 0.5;
+  cursor: grabbing !important;
+}
+
+.dnd-drag-overlay {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  transform: rotate(2deg);
+}
