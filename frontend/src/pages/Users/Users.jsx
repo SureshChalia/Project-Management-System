@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import userService from "../../services/user.service";
+import DeleteModal from "../../components/common/DeleteModal";
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -9,6 +10,7 @@ export default function Users() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [error, setError] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
   const pageSize = 10;
 
   const fetchUsers = async () => {
@@ -77,17 +79,25 @@ export default function Users() {
   };
 
   const handleDelete = async (userId) => {
-    if (!window.confirm("Delete this user? This cannot be undone.")) return;
-
     setDeletingUserId(userId);
     try {
       await userService.deleteUser(userId);
       setUsers((prev) => prev.filter((user) => user._id !== userId));
+      setSelectedUser(null);
     } catch (err) {
       setError(err.response?.data?.message || "Unable to delete user.");
     } finally {
       setDeletingUserId(null);
     }
+  };
+
+  const openDeleteModal = (user) => {
+    setSelectedUser(user);
+  };
+
+  const closeDeleteModal = () => {
+    if (deletingUserId) return;
+    setSelectedUser(null);
   };
 
   return (
@@ -165,7 +175,7 @@ export default function Users() {
                       <button
                         className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
                         disabled={deletingUserId === user._id}
-                        onClick={() => handleDelete(user._id)}
+                        onClick={() => openDeleteModal(user)}
                       >
                         Delete
                       </button>
@@ -200,6 +210,16 @@ export default function Users() {
             </button>
           </div>
         </div>
+      )}
+
+      {selectedUser && (
+        <DeleteModal
+          title="Delete user"
+          message={`Are you sure you want to delete ${selectedUser.firstName} ${selectedUser.lastName}? This action cannot be undone.`}
+          onConfirm={() => handleDelete(selectedUser._id)}
+          onCancel={closeDeleteModal}
+          loading={deletingUserId === selectedUser._id}
+        />
       )}
     </div>
   );
