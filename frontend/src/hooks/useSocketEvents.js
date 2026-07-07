@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import socketService from "../services/socket.service";
 import {
@@ -17,6 +17,20 @@ export const useSocketTaskEvents = (projectId, onTaskEvent) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const currentUserId = user?._id || user?.userId || user?.id;
+  const [connected, setConnected] = useState(socketService.getIsConnected());
+
+  useEffect(() => {
+    const handleSocketConnect = () => setConnected(true);
+    const handleSocketDisconnect = () => setConnected(false);
+
+    socketService.onConnect(handleSocketConnect);
+    socketService.onDisconnect(handleSocketDisconnect);
+
+    return () => {
+      socketService.offConnect(handleSocketConnect);
+      socketService.offDisconnect(handleSocketDisconnect);
+    };
+  }, []);
 
   useEffect(() => {
     if (!projectId || !currentUserId || !socketService.getIsConnected()) {
@@ -92,13 +106,13 @@ export const useSocketTaskEvents = (projectId, onTaskEvent) => {
       // Cleanup: Leave project room on unmount
       socketService.leaveProject(projectId);
 
-      // Remove event listeners
-      socketService.offEvent("task-created");
-      socketService.offEvent("task-updated");
-      socketService.offEvent("task-deleted");
-      socketService.offEvent("task-status-changed");
+      // Remove event listeners from this hook only
+      socketService.offEvent("task-created", handleTaskCreated);
+      socketService.offEvent("task-updated", handleTaskUpdated);
+      socketService.offEvent("task-deleted", handleTaskDeleted);
+      socketService.offEvent("task-status-changed", handleTaskStatusChanged);
     };
-  }, [projectId, dispatch, currentUserId, onTaskEvent]);
+  }, [projectId, dispatch, currentUserId, onTaskEvent, connected]);
 };
 
 /**

@@ -6,6 +6,7 @@ import authService from "../../services/auth.service";
 import socketService from "../../services/socket.service";
 import { useDispatch, useSelector } from "react-redux";
 import { loginSuccess, setLoading, setError } from "../../redux/slices/authSlice";
+import { fetchProjects } from "../../redux/thunks/projectThunks";
 import storage from "../../utils/storage";
 import { useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -42,6 +43,8 @@ export default function Login() {
         const { user, token } = res.data;
         storage.setToken(token);
         dispatch(loginSuccess({ user, token }));
+        // Load projects immediately after login so dashboard has data
+        dispatch(fetchProjects());
 
         // Connect socket with JWT token
         try {

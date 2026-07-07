@@ -11,6 +11,7 @@ import Loader from "../../components/common/Loader";
 import taskService from "../../services/task.service";
 import projectService from "../../services/project.service";
 import socketService from "../../services/socket.service";
+import userService from "../../services/user.service";
 import { useSocketTaskEvents } from "../../hooks/useSocketEvents";
 import {
   addTask as addTaskRedux,
@@ -30,6 +31,7 @@ const ProjectDetails = () => {
   const [activityFeed, setActivityFeed] = useState([]);
 
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [taskModalMembers, setTaskModalMembers] = useState([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -180,9 +182,30 @@ const ProjectDetails = () => {
     setIsDetailsModalOpen(true);
   };
 
-  const handleAddTask = (status = "Todo") => {
+  const isProjectMember = (project, user) => {
+    const userId = user?.userId || user?._id;
+    if (!project) return false;
+    if (project.owner?._id?.toString() === userId?.toString()) return true;
+    return (project.members || []).map((m) => m._id?.toString()).includes(userId?.toString());
+  };
+
+  const handleAddTask = async (status = "Todo") => {
     setDefaultStatus(status);
     setEditingTask(null);
+
+    // For Admins we should allow assigning any user; fetch users list
+    if (user?.role === "Admin") {
+      try {
+        const res = await userService.searchUsers("");
+        if (res && res.success) setTaskModalMembers(res.data.users || []);
+        else setTaskModalMembers(project?.members || []);
+      } catch (err) {
+        setTaskModalMembers(project?.members || []);
+      }
+    } else {
+      setTaskModalMembers(project?.members || []);
+    }
+
     setIsTaskModalOpen(true);
   };
 
@@ -245,7 +268,9 @@ const ProjectDetails = () => {
               )}
             </div>
 
-            <Button onClick={() => handleAddTask("Todo")}>+ Add Task</Button>
+            {(user?.role === "Admin" || isProjectMember(project, user)) && (
+              <Button onClick={() => handleAddTask("Todo")}>+ Add Task</Button>
+            )}
           </div>
         </div>
       </div>
@@ -288,7 +313,7 @@ const ProjectDetails = () => {
         onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
         initialData={editingTask}
         defaultStatus={defaultStatus}
-        projectMembers={project?.members || []}
+        projectMembers={taskModalMembers.length ? taskModalMembers : project?.members || []}
         isLoading={isCreatingTask || isUpdatingTask}
         title={editingTask ? "Edit Task" : "Create New Task"}
       />

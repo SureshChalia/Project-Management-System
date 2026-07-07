@@ -14,6 +14,20 @@ const findById = async (id) => {
   return User.findById(id);
 };
 
+const findAll = async () => {
+  return User.find().select("firstName lastName email avatar role isActive");
+};
+
+const updateUser = async (id, data) => {
+  return User.findByIdAndUpdate(id, data, { new: true }).select(
+    "firstName lastName email avatar role isActive"
+  );
+};
+
+const deleteUser = async (id) => {
+  return User.findByIdAndDelete(id);
+};
+
 const searchUsers = async (query, limit = 10) => {
   if (!query) return User.find().limit(limit).select("firstName lastName email avatar");
   const q = query.trim();
@@ -28,9 +42,17 @@ const searchUsers = async (query, limit = 10) => {
     .select("firstName lastName email avatar");
 };
 
+const countUsers = async () => {
+  return User.countDocuments();
+};
+
 export default {
   createUser,
   findByEmail,
   findById,
+  findAll,
+  updateUser,
+  deleteUser,
   searchUsers,
+  countUsers,
 };

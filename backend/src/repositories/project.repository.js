@@ -19,6 +19,10 @@ const findAllForUser = async (userId) => {
   );
 };
 
+const findAll = async () => {
+  return Project.find().populate("owner members", "firstName lastName email avatar");
+};
+
 const updateProject = async (id, data) => {
   return Project.findByIdAndUpdate(id, data, { new: true }).populate(
     "owner members",
@@ -52,6 +56,7 @@ export default {
   createProject,
   findById,
   findAllForUser,
+  findAll,
   updateProject,
   deleteProject,
   addMember,

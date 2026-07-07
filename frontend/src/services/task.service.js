@@ -36,6 +36,11 @@ const getTaskStats = async (projectId) => {
   return res.data;
 };
 
+const getMyTasks = async () => {
+  const res = await api.get(`/api/v1${API.MY_TASKS}`);
+  return res.data;
+};
+
 export default {
   createTask,
   getTasksByProject,
@@ -44,4 +49,5 @@ export default {
   updateTaskStatus,
   deleteTask,
   getTaskStats,
+  getMyTasks,
 };

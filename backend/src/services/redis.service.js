@@ -78,6 +78,42 @@ const clearPattern = async (pattern) =>
     return deletedCount;
   }, 0);
 
+const scanKeys = async (pattern) =>
+  withRedis("scanKeys", async (client) => {
+    let cursor = "0";
+    const keys = [];
+
+    do {
+      const [nextCursor, foundKeys] = await client.scan(cursor, {
+        match: pattern,
+        count: 100,
+      });
+
+      cursor = nextCursor.toString();
+      keys.push(...foundKeys);
+    } while (cursor !== "0");
+
+    return keys;
+  }, []);
+
+const countKeys = async (pattern) =>
+  withRedis("countKeys", async (client) => {
+    let cursor = "0";
+    let total = 0;
+
+    do {
+      const [nextCursor, keys] = await client.scan(cursor, {
+        match: pattern,
+        count: 100,
+      });
+
+      cursor = nextCursor.toString();
+      total += keys.length;
+    } while (cursor !== "0");
+
+    return total;
+  }, 0);
+
 const getJson = getCache;
 const setJson = setCache;
 const delByPattern = clearPattern;
@@ -92,6 +128,8 @@ export default {
   setCache,
   deleteCache,
   clearPattern,
+  scanKeys,
+  countKeys,
   getJson,
   setJson,
   delByPattern,

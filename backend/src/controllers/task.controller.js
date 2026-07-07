@@ -9,7 +9,7 @@ import {
 } from "../socket/index.js";
 
 const createTask = asyncHandler(async (req, res) => {
-  const task = await taskService.createTask(req.user.userId, req.body);
+  const task = await taskService.createTask(req.user, req.body);
 
   // Emit socket event to project room
   emitTaskCreated(task.project._id, task, req.user.userId);
@@ -19,19 +19,19 @@ const createTask = asyncHandler(async (req, res) => {
 
 const getTasksByProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const tasks = await taskService.getTasksByProject(req.user.userId, projectId);
+  const tasks = await taskService.getTasksByProject(req.user, projectId);
   res.json(new ApiResponse(true, "Tasks fetched", { tasks }));
 });
 
 const getTask = asyncHandler(async (req, res) => {
   const { taskId } = req.params;
-  const task = await taskService.getTaskById(req.user.userId, taskId);
+  const task = await taskService.getTaskById(req.user, taskId);
   res.json(new ApiResponse(true, "Task fetched", { task }));
 });
 
 const updateTask = asyncHandler(async (req, res) => {
   const { taskId } = req.params;
-  const task = await taskService.updateTask(req.user.userId, taskId, req.body);
+  const task = await taskService.updateTask(req.user, taskId, req.body);
 
   // Emit socket event to project room
   emitTaskUpdated(task.project._id, task, req.user.userId);
@@ -42,7 +42,7 @@ const updateTask = asyncHandler(async (req, res) => {
 const updateTaskStatus = asyncHandler(async (req, res) => {
   const { taskId } = req.params;
   const { status } = req.body;
-  const task = await taskService.updateTaskStatus(req.user.userId, taskId, status);
+  const task = await taskService.updateTaskStatus(req.user, taskId, status);
 
   // Emit socket event to project room
   emitTaskStatusChanged(task.project._id, taskId, status, req.user.userId);
@@ -52,7 +52,7 @@ const updateTaskStatus = asyncHandler(async (req, res) => {
 
 const deleteTask = asyncHandler(async (req, res) => {
   const { taskId } = req.params;
-  const task = await taskService.deleteTask(req.user.userId, taskId);
+  const task = await taskService.deleteTask(req.user, taskId);
 
   // Emit socket event to project room
   emitTaskDeleted(task.project._id, taskId, req.user.userId);
@@ -62,14 +62,19 @@ const deleteTask = asyncHandler(async (req, res) => {
 
 const deleteAllTasksByProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  await taskService.deleteAllTasksByProject(req.user.userId, projectId);
+  await taskService.deleteAllTasksByProject(req.user, projectId);
   res.json(new ApiResponse(true, "All project tasks deleted"));
 });
 
 const getProjectTaskStats = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const stats = await taskService.getProjectTaskStats(req.user.userId, projectId);
+  const stats = await taskService.getProjectTaskStats(req.user, projectId);
   res.json(new ApiResponse(true, "Task stats fetched", { stats }));
+});
+
+const getMyTasks = asyncHandler(async (req, res) => {
+  const tasks = await taskService.getMyTasks(req.user);
+  res.json(new ApiResponse(true, "Tasks fetched", { tasks }));
 });
 
 export default {
@@ -81,4 +86,5 @@ export default {
   deleteTask,
   deleteAllTasksByProject,
   getProjectTaskStats,
+  getMyTasks,
 };

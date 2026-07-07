@@ -10,6 +10,8 @@ class SocketService {
     this.isConnected = false;
     this.currentProjectId = null;
     this.listeners = [];
+    this.connectListeners = [];
+    this.disconnectListeners = [];
   }
 
   /**
@@ -40,6 +42,13 @@ class SocketService {
         this.socket.on("connect", () => {
           console.log("Socket connected:", this.socket.id);
           this.isConnected = true;
+          this.connectListeners.forEach((callback) => {
+            try {
+              callback();
+            } catch (err) {
+              console.error("Socket connect listener error:", err);
+            }
+          });
           resolve();
         });
 
@@ -55,6 +64,13 @@ class SocketService {
           console.log("Socket disconnected:", reason);
           this.isConnected = false;
           this.currentProjectId = null;
+          this.disconnectListeners.forEach((callback) => {
+            try {
+              callback(reason);
+            } catch (err) {
+              console.error("Socket disconnect listener error:", err);
+            }
+          });
         });
 
         // Error handling
@@ -132,12 +148,13 @@ class SocketService {
       return;
     }
 
-    this.socket.on("task-created", (data) => {
+    const listener = (data) => {
       console.log("Task created event received:", data);
       callback(data);
-    });
+    };
 
-    this.listeners.push({ event: "task-created", callback });
+    this.socket.on("task-created", listener);
+    this.listeners.push({ event: "task-created", callback, listener });
   }
 
   /**
@@ -150,12 +167,13 @@ class SocketService {
       return;
     }
 
-    this.socket.on("task-updated", (data) => {
+    const listener = (data) => {
       console.log("Task updated event received:", data);
       callback(data);
-    });
+    };
 
-    this.listeners.push({ event: "task-updated", callback });
+    this.socket.on("task-updated", listener);
+    this.listeners.push({ event: "task-updated", callback, listener });
   }
 
   /**
@@ -168,12 +186,13 @@ class SocketService {
       return;
     }
 
-    this.socket.on("task-deleted", (data) => {
+    const listener = (data) => {
       console.log("Task deleted event received:", data);
       callback(data);
-    });
+    };
 
-    this.listeners.push({ event: "task-deleted", callback });
+    this.socket.on("task-deleted", listener);
+    this.listeners.push({ event: "task-deleted", callback, listener });
   }
 
   /**
@@ -186,12 +205,13 @@ class SocketService {
       return;
     }
 
-    this.socket.on("task-status-changed", (data) => {
+    const listener = (data) => {
       console.log("Task status changed event received:", data);
       callback(data);
-    });
+    };
 
-    this.listeners.push({ event: "task-status-changed", callback });
+    this.socket.on("task-status-changed", listener);
+    this.listeners.push({ event: "task-status-changed", callback, listener });
   }
 
   /**
@@ -204,12 +224,13 @@ class SocketService {
       return;
     }
 
-    this.socket.on("user-joined", (data) => {
+    const listener = (data) => {
       console.log("User joined event received:", data);
       callback(data);
-    });
+    };
 
-    this.listeners.push({ event: "user-joined", callback });
+    this.socket.on("user-joined", listener);
+    this.listeners.push({ event: "user-joined", callback, listener });
   }
 
   /**
@@ -222,23 +243,72 @@ class SocketService {
       return;
     }
 
-    this.socket.on("user-left", (data) => {
+    const listener = (data) => {
       console.log("User left event received:", data);
       callback(data);
-    });
+    };
 
-    this.listeners.push({ event: "user-left", callback });
+    this.socket.on("user-left", listener);
+    this.listeners.push({ event: "user-left", callback, listener });
   }
 
   /**
    * Unsubscribe from a specific event
    * @param {string} event - Event name
+   * @param {Function} [callback] - Optional callback to remove
    */
-  offEvent(event) {
+  offEvent(event, callback) {
     if (!this.socket) return;
+
+    if (callback) {
+      const toRemove = this.listeners.filter(
+        (listenerEntry) => listenerEntry.event === event && listenerEntry.callback === callback
+      );
+
+      toRemove.forEach(({ listener }) => {
+        this.socket.off(event, listener);
+      });
+
+      this.listeners = this.listeners.filter(
+        (listenerEntry) => !(listenerEntry.event === event && listenerEntry.callback === callback)
+      );
+      return;
+    }
 
     this.socket.off(event);
     this.listeners = this.listeners.filter((l) => l.event !== event);
+  }
+
+  onConnect(callback) {
+    if (typeof callback !== "function") return;
+    this.connectListeners.push(callback);
+    if (this.isConnected) {
+      try {
+        callback();
+      } catch (err) {
+        console.error("Socket connect listener error:", err);
+      }
+    }
+  }
+
+  offConnect(callback) {
+    this.connectListeners = this.connectListeners.filter((cb) => cb !== callback);
+  }
+
+  onDisconnect(callback) {
+    if (typeof callback !== "function") return;
+    this.disconnectListeners.push(callback);
+    if (!this.isConnected) {
+      try {
+        callback();
+      } catch (err) {
+        console.error("Socket disconnect listener error:", err);
+      }
+    }
+  }
+
+  offDisconnect(callback) {
+    this.disconnectListeners = this.disconnectListeners.filter((cb) => cb !== callback);
   }
 
   /**

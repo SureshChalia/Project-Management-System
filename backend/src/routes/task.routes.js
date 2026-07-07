@@ -1,6 +1,7 @@
 import { Router } from "express";
 import taskController from "../controllers/task.controller.js";
 import authenticate from "../middlewares/auth.middleware.js";
+import authorize from "../middlewares/authorize.middleware.js";
 import validate from "../middlewares/validate.middleware.js";
 import taskValidator from "../validators/task.validator.js";
 
@@ -27,6 +28,12 @@ router.get(
   taskController.getProjectTaskStats
 );
 
+// Get tasks assigned to current user or accessible tasks
+router.get(
+  "/me",
+  taskController.getMyTasks
+);
+
 // Get task details
 router.get(
   "/:taskId",
@@ -50,12 +57,14 @@ router.patch(
 // Delete a task
 router.delete(
   "/:taskId",
+  authorize("Admin", "Manager"),
   taskController.deleteTask
 );
 
 // Delete all tasks for a project (owner only)
 router.delete(
   "/project/:projectId/all",
+  authorize("Admin", "Manager"),
   taskController.deleteAllTasksByProject
 );
 

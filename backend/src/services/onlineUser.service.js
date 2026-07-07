@@ -24,6 +24,10 @@ const isOnline = async (userId) => {
   return exists === 1;
 };
 
+const countOnlineUsers = async () => {
+  return redisService.countKeys("online:user:*");
+};
+
 const refresh = async (userId) => {
   await redisService.expire(key(userId), ONLINE_USER_TTL_SECONDS);
 };
@@ -33,5 +37,6 @@ export default {
   setOffline,
   getSocketId,
   isOnline,
+  countOnlineUsers,
   refresh,
 };

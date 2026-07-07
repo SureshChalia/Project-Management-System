@@ -15,6 +15,8 @@ import DeleteModal from "../../components/common/DeleteModal";
 export default function Projects() {
   const dispatch = useDispatch();
   const { projects, loading, error } = useSelector((s) => s.projects);
+  const user = useSelector((s) => s.auth.user);
+  const role = user?.role;
   const [showCreate, setShowCreate] = useState(false);
   const [editProject, setEditProject] = useState(null);
   const [deleteProjectId, setDeleteProjectId] = useState(null);
@@ -40,11 +42,13 @@ export default function Projects() {
           <h2 className="text-2xl font-semibold">Projects</h2>
           <p className="text-sm text-gray-500">All projects you're a member of or own</p>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="flex-1 sm:flex-none">
             <input placeholder="Search projects" className="w-full sm:w-64 rounded-md border px-3 py-2" />
           </div>
-          <Button onClick={() => setShowCreate(true)}>Create Project</Button>
+          {role !== "Member" && (
+            <Button onClick={() => setShowCreate(true)}>Create Project</Button>
+          )}
         </div>
       </div>
 
@@ -68,7 +72,7 @@ export default function Projects() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
         {projects.map((p) => (
           <ProjectCard key={p._id} project={p} onDelete={(id) => { setDeleteProjectId(id); setShowDelete(true); }} onEdit={(proj) => setEditProject(proj)} />
         ))}

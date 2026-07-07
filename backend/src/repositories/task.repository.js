@@ -24,6 +24,27 @@ const findByProjectId = async (projectId) => {
     .sort({ createdAt: -1 });
 };
 
+const findByAssignee = async (assigneeId) => {
+  if (!mongoose.Types.ObjectId.isValid(assigneeId)) return [];
+  return Task.find({ assignedTo: assigneeId })
+    .populate(["project", "assignedTo", "createdBy"])
+    .sort({ createdAt: -1 });
+};
+
+const findByProjectIds = async (projectIds) => {
+  const validIds = projectIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+  if (!validIds.length) return [];
+  return Task.find({ project: { $in: validIds } })
+    .populate(["project", "assignedTo", "createdBy"])
+    .sort({ createdAt: -1 });
+};
+
+const findAll = async () => {
+  return Task.find()
+    .populate(["project", "assignedTo", "createdBy"])
+    .sort({ createdAt: -1 });
+};
+
 const updateTask = async (id, data) => {
   return Task.findByIdAndUpdate(id, data, { new: true }).populate([
     "project",
@@ -100,6 +121,9 @@ export default {
   createTask,
   findById,
   findByProjectId,
+  findByAssignee,
+  findByProjectIds,
+  findAll,
   updateTask,
   deleteTask,
   updateTaskStatus,

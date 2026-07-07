@@ -17,12 +17,14 @@ const isProjectOwner = (project, userId) => {
   return project.owner._id.toString() === userId.toString();
 };
 
-const createTask = async (userId, payload) => {
+const createTask = async (user, payload) => {
+  const userId = user.userId;
   // Get project and verify membership
   const project = await projectRepository.findById(payload.project);
   if (!project) throw new ApiError(404, "Project not found");
 
-  if (!isProjectMember(project, userId)) {
+  // Admins can create tasks anywhere
+  if (user.role !== "Admin" && !isProjectMember(project, userId)) {
     throw new ApiError(403, "Only project members can create tasks");
   }
 
@@ -37,12 +39,13 @@ const createTask = async (userId, payload) => {
   return task;
 };
 
-const getTasksByProject = async (userId, projectId) => {
+const getTasksByProject = async (user, projectId) => {
+  const userId = user.userId;
   // Get project and verify membership
   const project = await projectRepository.findById(projectId);
   if (!project) throw new ApiError(404, "Project not found");
 
-  if (!isProjectMember(project, userId)) {
+  if (user.role !== "Admin" && !isProjectMember(project, userId)) {
     throw new ApiError(403, "Access denied");
   }
 
@@ -51,7 +54,8 @@ const getTasksByProject = async (userId, projectId) => {
   );
 };
 
-const getTaskById = async (userId, taskId) => {
+const getTaskById = async (user, taskId) => {
+  const userId = user.userId;
   const task = await taskRepository.findById(taskId);
   if (!task) throw new ApiError(404, "Task not found");
 
@@ -59,14 +63,15 @@ const getTaskById = async (userId, taskId) => {
   const project = await projectRepository.findById(task.project._id);
   if (!project) throw new ApiError(404, "Project not found");
 
-  if (!isProjectMember(project, userId)) {
+  if (user.role !== "Admin" && !isProjectMember(project, userId)) {
     throw new ApiError(403, "Access denied");
   }
 
   return task;
 };
 
-const updateTask = async (userId, taskId, payload) => {
+const updateTask = async (user, taskId, payload) => {
+  const userId = user.userId;
   const task = await taskRepository.findById(taskId);
   if (!task) throw new ApiError(404, "Task not found");
 
@@ -74,7 +79,7 @@ const updateTask = async (userId, taskId, payload) => {
   const project = await projectRepository.findById(task.project._id);
   if (!project) throw new ApiError(404, "Project not found");
 
-  if (!isProjectMember(project, userId)) {
+  if (user.role !== "Admin" && !isProjectMember(project, userId)) {
     throw new ApiError(403, "Only project members can update tasks");
   }
 
@@ -101,7 +106,8 @@ const updateTask = async (userId, taskId, payload) => {
   return updatedTask;
 };
 
-const updateTaskStatus = async (userId, taskId, status) => {
+const updateTaskStatus = async (user, taskId, status) => {
+  const userId = user.userId;
   const task = await taskRepository.findById(taskId);
   if (!task) throw new ApiError(404, "Task not found");
 
@@ -109,7 +115,7 @@ const updateTaskStatus = async (userId, taskId, status) => {
   const project = await projectRepository.findById(task.project._id);
   if (!project) throw new ApiError(404, "Project not found");
 
-  if (!isProjectMember(project, userId)) {
+  if (user.role !== "Admin" && !isProjectMember(project, userId)) {
     throw new ApiError(403, "Only project members can update tasks");
   }
 
@@ -118,7 +124,8 @@ const updateTaskStatus = async (userId, taskId, status) => {
   return updatedTask;
 };
 
-const deleteTask = async (userId, taskId) => {
+const deleteTask = async (user, taskId) => {
+  const userId = user.userId;
   const task = await taskRepository.findById(taskId);
   if (!task) throw new ApiError(404, "Task not found");
 
@@ -126,15 +133,15 @@ const deleteTask = async (userId, taskId) => {
   const project = await projectRepository.findById(task.project._id);
   if (!project) throw new ApiError(404, "Project not found");
 
-  if (!isProjectMember(project, userId)) {
+  if (user.role !== "Admin" && !isProjectMember(project, userId)) {
     throw new ApiError(403, "Only project members can delete tasks");
   }
 
-  // Only project owner or task creator can delete
+  // Only Admin, project owner or task creator can delete
   const isOwner = isProjectOwner(project, userId);
   const isCreator = task.createdBy._id.toString() === userId.toString();
 
-  if (!isOwner && !isCreator) {
+  if (user.role !== "Admin" && !isOwner && !isCreator) {
     throw new ApiError(403, "Only project owner or task creator can delete this task");
   }
 
@@ -143,12 +150,13 @@ const deleteTask = async (userId, taskId) => {
   return task; // Return task object for socket emission
 };
 
-const deleteAllTasksByProject = async (userId, projectId) => {
+const deleteAllTasksByProject = async (user, projectId) => {
+  const userId = user.userId;
   // Get project and verify ownership
   const project = await projectRepository.findById(projectId);
   if (!project) throw new ApiError(404, "Project not found");
 
-  if (!isProjectOwner(project, userId)) {
+  if (user.role !== "Admin" && !isProjectOwner(project, userId)) {
     throw new ApiError(403, "Only project owner can delete all tasks");
   }
 
@@ -157,16 +165,35 @@ const deleteAllTasksByProject = async (userId, projectId) => {
   return true;
 };
 
-const getProjectTaskStats = async (userId, projectId) => {
+const getProjectTaskStats = async (user, projectId) => {
+  const userId = user.userId;
   // Get project and verify membership
   const project = await projectRepository.findById(projectId);
   if (!project) throw new ApiError(404, "Project not found");
 
-  if (!isProjectMember(project, userId)) {
+  if (user.role !== "Admin" && !isProjectMember(project, userId)) {
     throw new ApiError(403, "Access denied");
   }
 
   return taskRepository.getProjectTaskStats(projectId);
+};
+
+const getMyTasks = async (user) => {
+  if (user.role === "Admin") {
+    return taskRepository.findAll();
+  }
+
+  const projects = await projectRepository.findAllForUser(user.userId);
+  const projectIds = projects.map((project) => project._id.toString());
+  const projectTasks = await taskRepository.findByProjectIds(projectIds);
+  const assignedTasks = await taskRepository.findByAssignee(user.userId);
+
+  const tasksMap = new Map();
+  [...projectTasks, ...assignedTasks].forEach((task) => {
+    tasksMap.set(task._id.toString(), task);
+  });
+
+  return Array.from(tasksMap.values());
 };
 
 export default {
@@ -178,4 +205,5 @@ export default {
   deleteTask,
   deleteAllTasksByProject,
   getProjectTaskStats,
+  getMyTasks,
 };

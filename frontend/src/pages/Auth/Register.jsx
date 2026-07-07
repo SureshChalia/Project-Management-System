@@ -5,6 +5,7 @@ import { z } from "zod";
 import authService from "../../services/auth.service";
 import { useDispatch, useSelector } from "react-redux";
 import { loginSuccess, setError } from "../../redux/slices/authSlice";
+import { fetchProjects } from "../../redux/thunks/projectThunks";
 import storage from "../../utils/storage";
 import { useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -56,6 +57,8 @@ export default function Register() {
 				const { user, token } = res.data;
 				storage.setToken(token);
 				dispatch(loginSuccess({ user, token }));
+				// fetch projects immediately so dashboard shows data
+				dispatch(fetchProjects());
 				toast.success("Registration successful");
 				navigate("/dashboard");
 			} else {

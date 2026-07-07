@@ -8,4 +8,27 @@ const search = asyncHandler(async (req, res) => {
   res.json(new ApiResponse(true, "Users fetched", { users }));
 });
 
-export default { search };
+const list = asyncHandler(async (req, res) => {
+  const users = await userRepository.findAll();
+  res.json(new ApiResponse(true, "Users fetched", { users }));
+});
+
+const update = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const updatedUser = await userRepository.updateUser(id, req.body);
+  if (!updatedUser) {
+    return res.status(404).json(new ApiResponse(false, "User not found"));
+  }
+  res.json(new ApiResponse(true, "User updated", { user: updatedUser }));
+});
+
+const remove = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const deletedUser = await userRepository.deleteUser(id);
+  if (!deletedUser) {
+    return res.status(404).json(new ApiResponse(false, "User not found"));
+  }
+  res.json(new ApiResponse(true, "User deleted"));
+});
+
+export default { search, list, update, remove };
